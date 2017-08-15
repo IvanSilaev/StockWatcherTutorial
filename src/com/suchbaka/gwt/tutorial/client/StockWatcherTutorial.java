@@ -8,6 +8,7 @@ import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.event.dom.client.KeyCodes;
 import com.google.gwt.event.dom.client.KeyDownEvent;
 import com.google.gwt.event.dom.client.KeyDownHandler;
+import com.google.gwt.i18n.client.NumberFormat;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.FlexTable;
@@ -17,11 +18,16 @@ import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.VerticalPanel;
 import com.suchbaka.gwt.tutorial.shared.TableNames;
+import com.google.gwt.user.client.Random;
+import com.google.gwt.user.client.Timer;
 
 /**
  * Entry point classes define <code>onModuleLoad()</code>.
  */
 public class StockWatcherTutorial implements EntryPoint {
+	
+	private static final int REFRESH_INTERVAL = 5000;
+	
 
 	private VerticalPanel mainPanel;
 	private FlexTable stocksFlexTable;
@@ -33,6 +39,8 @@ public class StockWatcherTutorial implements EntryPoint {
 	
 	private ArrayList<String> stocks;
 	
+	private Timer refreshTimer;
+	
 	public void onModuleLoad() {
 		mainPanel = new VerticalPanel();
 		stocksFlexTable = new FlexTable();
@@ -42,6 +50,15 @@ public class StockWatcherTutorial implements EntryPoint {
 		lastUpdatedLabel = new Label();
 		
 		stocks = new ArrayList<>();
+		
+		refreshTimer = new Timer() {
+			@Override
+			public void run() {
+				refreshWatchList();
+			}
+		};
+		
+		refreshTimer.scheduleRepeating(REFRESH_INTERVAL);
 		
 		// Есть ли разница между вызовом метода setText(String text); и перадчей имени кнопки в констурктор new Button(String text); ?
 		// И что лучше?
@@ -117,12 +134,58 @@ public class StockWatcherTutorial implements EntryPoint {
 		});
 		
 		stocksFlexTable.setWidget(row, 3, removeStockButton);
+		
+		refreshWatchList();
 	}
 	
+
 	private void removeStock(String symbol) {
 		int removedIndex = stocks.indexOf(symbol);
 		stocks.remove(removedIndex);
 		
 		stocksFlexTable.removeRow(removedIndex + 1);
+		
+		refreshWatchList();
+	}
+	
+	private void refreshWatchList() {
+		final double MAX_PRICE = 100.0;
+		final double MAX_PRICE_CHANGE = 0.02;
+		
+		StockPrice[] prices = new StockPrice[stocks.size()];
+		
+		for(int i = 0; i < stocks.size(); i++) {
+			double price = Random.nextDouble() * MAX_PRICE;
+			double change = price * MAX_PRICE_CHANGE
+					* (Random.nextDouble() * 2.0 - 1.0);
+			
+			prices[i] = new StockPrice(stocks.get(i), price, change);
+		}
+		
+		updateTable(prices);
+	}
+
+	private void updateTable(StockPrice[] prices) {
+		for(int i = 0; i < prices.length; i++) {
+			updateTable(prices[i]);
+		}
+	}
+
+	private void updateTable(StockPrice stockPrice) {
+		if(!stocks.contains(stockPrice.getSymbol())) {
+			return;
+		}
+		
+		int row = stocks.indexOf(stockPrice.getSymbol()) + 1;
+		
+		String priceText = NumberFormat.getFormat("#,##0.00")
+				.format(stockPrice.getPrice());
+		NumberFormat changeFormat = NumberFormat.getFormat("+#,##0.00;-#,##0.00");
+		
+		String changeText = changeFormat.format(stockPrice.getChange());
+		String changeTextPrecent = changeFormat.format(stockPrice.getChange());
+		
+		stocksFlexTable.setText(row, 1, priceText);
+		stocksFlexTable.setText(row, 2, changeText + "(" + changeTextPrecent + "%)");
 	}
 }

@@ -2,33 +2,68 @@
 
 
 /** Example rules used by the template application (remove for your app) */
-h1 {
-  font-size: 2em;
-  font-weight: bold;
-  color: #777777;
-  margin: 40px 0px 70px;
+img {
+	padding-top: 20px;
+	padding-left: 20px;
+}
+
+.stockListClass {
+	padding: 20px;
+}
+
+/* stock list header row */
+.watchListHeader {
+  background-color: #2062B8;
+  color: white;
+  font-style: italic;
+}
+
+/* stock list flex table */
+.watchList {
+  border: 1px solid silver;
+  padding: 2px;
+  margin-bottom:6px;
+}
+
+.watchListNumericColumn {
+  text-align: right;
+  width:8em;
+}
+
+.watchListRemoveColumn {
   text-align: center;
 }
 
-.sendButton {
-  display: block;
-  font-size: 16pt;
+/* Add Stock panel */
+.addPanel {
+  margin: 10px 0px 15px 0px;
 }
 
-/** Most GWT widgets already have a style name defined */
-.gwt-DialogBox {
-  width: 400px;
+.gwt-TextBox-area {
+	width: 200px;
+	padding: 12px 20px;
+    box-sizing: border-box;
+	border-left: 4px solid #3366FF;
 }
 
-.dialogVPanel {
-  margin: 5px;
+/* stock list, the Remove button */
+.gwt-Button-remove {
+  width: 50px;
 }
 
-.serverResponseLabelError {
-  color: red;
+/* Dynamic color changes for the Change field */
+.noChange {
+	color: black;
+	}
+
+.positiveChange {
+    color: green;
 }
 
-/** Set ids using widget.getElement().setId("idOfElement") */
-#closeButton {
-  margin: 15px 6px 6px;
+.negativeChange {
+    color: red;
 }
+
+
+
+

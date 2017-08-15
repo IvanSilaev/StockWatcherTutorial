@@ -1,6 +1,7 @@
 package com.suchbaka.gwt.tutorial.client;
 
 import java.util.ArrayList;
+import java.util.Date;
 
 import com.google.gwt.core.client.EntryPoint;
 import com.google.gwt.event.dom.client.ClickEvent;
@@ -8,6 +9,7 @@ import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.event.dom.client.KeyCodes;
 import com.google.gwt.event.dom.client.KeyDownEvent;
 import com.google.gwt.event.dom.client.KeyDownHandler;
+import com.google.gwt.i18n.client.DateTimeFormat;
 import com.google.gwt.i18n.client.NumberFormat;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.Button;
@@ -69,10 +71,22 @@ public class StockWatcherTutorial implements EntryPoint {
 		stocksFlexTable.setText(0, 2, TableNames.CHANGE.toString());
 		stocksFlexTable.setText(0, 3, TableNames.REMOVE.toString());
 		
+		stocksFlexTable.setCellPadding(6);
+		
+		stocksFlexTable.getRowFormatter().addStyleName(0, "watchListHeader");
+		stocksFlexTable.addStyleName("watchList");
+		stocksFlexTable.getCellFormatter().addStyleName(0, 1, "watchListNumericColumn");
+		stocksFlexTable.getCellFormatter().addStyleName(0, 2, "watchListNumericColumn");
+		
+		newSymbolTextBox.addStyleDependentName("area");
+		
 		addPanel.add(newSymbolTextBox);
 		addPanel.add(addStockButton);
 		
 		mainPanel.add(stocksFlexTable);
+		
+		addPanel.addStyleName("addPanel");
+		
 		mainPanel.add(addPanel);
 		mainPanel.add(lastUpdatedLabel);
 		
@@ -121,9 +135,14 @@ public class StockWatcherTutorial implements EntryPoint {
 		
 		stocks.add(symbol);
 		stocksFlexTable.setText(row, 0, symbol);
+		stocksFlexTable.setWidget(row, 2, new Label());
+		stocksFlexTable.getCellFormatter().addStyleName(row, 1, "watchListNumericColumn");
+		stocksFlexTable.getCellFormatter().addStyleName(row, 2, "watchListNumericColumn");
+		stocksFlexTable.getCellFormatter().addStyleName(row, 3, "watchListRemoveColumn");
 		
 		removeStockButton = new Button();
 		removeStockButton.setText("x");
+		removeStockButton.addStyleDependentName("remove");
 		
 		removeStockButton.addClickHandler(new ClickHandler() {
 			
@@ -145,7 +164,7 @@ public class StockWatcherTutorial implements EntryPoint {
 		
 		stocksFlexTable.removeRow(removedIndex + 1);
 		
-		refreshWatchList();
+		//refreshWatchList();
 	}
 	
 	private void refreshWatchList() {
@@ -169,6 +188,11 @@ public class StockWatcherTutorial implements EntryPoint {
 		for(int i = 0; i < prices.length; i++) {
 			updateTable(prices[i]);
 		}
+		
+		DateTimeFormat dateFormat = DateTimeFormat.getFormat(
+				DateTimeFormat.PredefinedFormat.DATE_TIME_MEDIUM);
+		lastUpdatedLabel.setText("Last update : " 
+				+ dateFormat.format(new Date()));
 	}
 
 	private void updateTable(StockPrice stockPrice) {
@@ -186,6 +210,18 @@ public class StockWatcherTutorial implements EntryPoint {
 		String changeTextPrecent = changeFormat.format(stockPrice.getChange());
 		
 		stocksFlexTable.setText(row, 1, priceText);
-		stocksFlexTable.setText(row, 2, changeText + "(" + changeTextPrecent + "%)");
+		Label changeWidget = (Label) stocksFlexTable.getWidget(row, 2);
+		changeWidget.setText(changeText + "(" + changeTextPrecent  + "%)");
+		
+		String changeStyleName = "noChange";
+		if(stockPrice.getChangePrecent() < -0.1f) {
+			changeStyleName = "negativeChange";
+		}
+		
+		else if(stockPrice.getChangePrecent() > 0.1f) {
+			changeStyleName = "positiveChange";
+		}
+		
+		changeWidget.setStyleName(changeStyleName);
 	}
 }

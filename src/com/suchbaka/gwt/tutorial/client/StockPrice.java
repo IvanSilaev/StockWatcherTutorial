@@ -1,6 +1,12 @@
 package com.suchbaka.gwt.tutorial.client;
 
-public class StockPrice {
+import java.io.Serializable;
+
+public class StockPrice implements Serializable {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -6524985291755288234L;
 	private String symbol;
 	private double price;
 	private double change;

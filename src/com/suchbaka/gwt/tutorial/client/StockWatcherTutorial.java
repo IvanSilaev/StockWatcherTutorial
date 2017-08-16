@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Date;
 
 import com.google.gwt.core.client.EntryPoint;
+import com.google.gwt.core.client.GWT;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.event.dom.client.KeyCodes;
@@ -12,6 +13,7 @@ import com.google.gwt.event.dom.client.KeyDownHandler;
 import com.google.gwt.i18n.client.DateTimeFormat;
 import com.google.gwt.i18n.client.NumberFormat;
 import com.google.gwt.user.client.Window;
+import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.FlexTable;
 import com.google.gwt.user.client.ui.HorizontalPanel;
@@ -20,7 +22,6 @@ import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.VerticalPanel;
 import com.suchbaka.gwt.tutorial.shared.TableNames;
-import com.google.gwt.user.client.Random;
 import com.google.gwt.user.client.Timer;
 
 /**
@@ -39,9 +40,11 @@ public class StockWatcherTutorial implements EntryPoint {
 	private Button removeStockButton;
 	private Label lastUpdatedLabel;
 	
-	private ArrayList<String> stocks;
-	
 	private Timer refreshTimer;
+	
+	private StockPriceServiceAsync stockPriceSvc = GWT.create(StockPriceService.class);
+	private Label errorMsgLabel = new Label();
+	private ArrayList<String> stocks = new ArrayList<>();
 	
 	public void onModuleLoad() {
 		mainPanel = new VerticalPanel();
@@ -50,8 +53,6 @@ public class StockWatcherTutorial implements EntryPoint {
 		newSymbolTextBox = new TextBox();
 		addStockButton = new Button();
 		lastUpdatedLabel = new Label();
-		
-		stocks = new ArrayList<>();
 		
 		refreshTimer = new Timer() {
 			@Override
@@ -62,8 +63,6 @@ public class StockWatcherTutorial implements EntryPoint {
 		
 		refreshTimer.scheduleRepeating(REFRESH_INTERVAL);
 		
-		// Есть ли разница между вызовом метода setText(String text); и перадчей имени кнопки в констурктор new Button(String text); ?
-		// И что лучше?
 		addStockButton.setText("Add");
 		
 		stocksFlexTable.setText(0, 0, TableNames.SYMBOL.toString());
@@ -80,10 +79,14 @@ public class StockWatcherTutorial implements EntryPoint {
 		
 		newSymbolTextBox.addStyleDependentName("area");
 		
+		errorMsgLabel.setStyleName("errorMessage");
+		errorMsgLabel.setVisible(false);
+		
 		addPanel.add(newSymbolTextBox);
 		addPanel.add(addStockButton);
 		
 		mainPanel.add(stocksFlexTable);
+		mainPanel.add(errorMsgLabel);
 		
 		addPanel.addStyleName("addPanel");
 		
@@ -163,25 +166,35 @@ public class StockWatcherTutorial implements EntryPoint {
 		stocks.remove(removedIndex);
 		
 		stocksFlexTable.removeRow(removedIndex + 1);
-		
-		//refreshWatchList();
 	}
 	
 	private void refreshWatchList() {
-		final double MAX_PRICE = 100.0;
-		final double MAX_PRICE_CHANGE = 0.02;
+		 if (stockPriceSvc == null) {
+		      stockPriceSvc = GWT.create(StockPriceService.class);
+		 }
+		 
+		 AsyncCallback<StockPrice[]> callback = new AsyncCallback<StockPrice[]>(){
+
+			@Override
+			public void onFailure(Throwable caught) {
+				String details = caught.getMessage();
+				
+				if(caught instanceof DelistedException) {
+					details = "Company '" + ((DelistedException)caught).getSymbol() + " 'was delisted";
+				}
+				
+				errorMsgLabel.setText("Error: " + details);
+				errorMsgLabel.setVisible(true);
+			}
+
+			@Override
+			public void onSuccess(StockPrice[] result) {
+				updateTable(result);
+			}
+			 
+		};
 		
-		StockPrice[] prices = new StockPrice[stocks.size()];
-		
-		for(int i = 0; i < stocks.size(); i++) {
-			double price = Random.nextDouble() * MAX_PRICE;
-			double change = price * MAX_PRICE_CHANGE
-					* (Random.nextDouble() * 2.0 - 1.0);
-			
-			prices[i] = new StockPrice(stocks.get(i), price, change);
-		}
-		
-		updateTable(prices);
+		stockPriceSvc.getPrices(stocks.toArray(new String[0]), callback);
 	}
 
 	private void updateTable(StockPrice[] prices) {
@@ -193,6 +206,8 @@ public class StockWatcherTutorial implements EntryPoint {
 				DateTimeFormat.PredefinedFormat.DATE_TIME_MEDIUM);
 		lastUpdatedLabel.setText("Last update : " 
 				+ dateFormat.format(new Date()));
+		
+		errorMsgLabel.setVisible(false);
 	}
 
 	private void updateTable(StockPrice stockPrice) {

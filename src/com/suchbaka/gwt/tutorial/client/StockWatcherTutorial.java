@@ -2,13 +2,18 @@ package com.suchbaka.gwt.tutorial.client;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Iterator;
 
 import com.google.gwt.core.client.EntryPoint;
+import com.google.gwt.core.client.GWT;
+import com.google.gwt.core.client.JsArray;
+import com.google.gwt.core.client.JsonUtils;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.event.dom.client.KeyCodes;
 import com.google.gwt.event.dom.client.KeyDownEvent;
 import com.google.gwt.event.dom.client.KeyDownHandler;
+import com.google.gwt.http.client.URL;
 import com.google.gwt.i18n.client.DateTimeFormat;
 import com.google.gwt.i18n.client.NumberFormat;
 import com.google.gwt.user.client.Window;
@@ -20,8 +25,15 @@ import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.VerticalPanel;
 import com.suchbaka.gwt.tutorial.shared.TableNames;
-import com.google.gwt.user.client.Random;
 import com.google.gwt.user.client.Timer;
+
+import com.google.gwt.http.client.Request;
+import com.google.gwt.http.client.RequestBuilder;
+import com.google.gwt.http.client.RequestCallback;
+import com.google.gwt.http.client.RequestException;
+import com.google.gwt.http.client.Response;
+
+
 
 /**
  * Entry point classes define <code>onModuleLoad()</code>.
@@ -29,7 +41,7 @@ import com.google.gwt.user.client.Timer;
 public class StockWatcherTutorial implements EntryPoint {
 	
 	private static final int REFRESH_INTERVAL = 5000;
-	
+	private static final String JSON_URL = GWT.getModuleBaseURL() + "stockPrices?q=";
 
 	private VerticalPanel mainPanel;
 	private FlexTable stocksFlexTable;
@@ -38,8 +50,10 @@ public class StockWatcherTutorial implements EntryPoint {
 	private Button addStockButton;
 	private Button removeStockButton;
 	private Label lastUpdatedLabel;
+
 	
 	private ArrayList<String> stocks;
+	private Label errorMsgLabel = new Label();
 	
 	private Timer refreshTimer;
 	
@@ -80,9 +94,13 @@ public class StockWatcherTutorial implements EntryPoint {
 		
 		newSymbolTextBox.addStyleDependentName("area");
 		
+		errorMsgLabel.setStyleName("errorMessage");
+		errorMsgLabel.setVisible(false);
+		
 		addPanel.add(newSymbolTextBox);
 		addPanel.add(addStockButton);
 		
+		mainPanel.add(errorMsgLabel);
 		mainPanel.add(stocksFlexTable);
 		
 		addPanel.addStyleName("addPanel");
@@ -168,34 +186,67 @@ public class StockWatcherTutorial implements EntryPoint {
 	}
 	
 	private void refreshWatchList() {
-		final double MAX_PRICE = 100.0;
-		final double MAX_PRICE_CHANGE = 0.02;
+		if(stocks.size() == 0) {
+			return;
+		}
+	
+		String url = JSON_URL;
 		
-		StockPrice[] prices = new StockPrice[stocks.size()];
+		Iterator<String> iter = stocks.iterator();
 		
-		for(int i = 0; i < stocks.size(); i++) {
-			double price = Random.nextDouble() * MAX_PRICE;
-			double change = price * MAX_PRICE_CHANGE
-					* (Random.nextDouble() * 2.0 - 1.0);
+		while(iter.hasNext()) {
+			url+= iter.next();
 			
-			prices[i] = new StockPrice(stocks.get(i), price, change);
+			if(iter.hasNext()) {
+				url += "+";
+			}
 		}
 		
-		updateTable(prices);
+		url = URL.encode(url);
+		
+		RequestBuilder builder = new RequestBuilder(RequestBuilder.GET, url);
+		
+		try {
+			Request requset = builder.sendRequest(null, new RequestCallback() {
+				
+				@Override
+				public void onResponseReceived(Request request, Response response) {
+					if(200 == response.getStatusCode()) {
+						updateTable(JsonUtils.<JsArray<StockData>>safeEval(response.getText()));
+					}
+					else {
+						displayError("Couldn't retrieve JSON (" + response.getStatusText() + ")");
+					}
+				}
+				
+				@Override
+				public void onError(Request request, Throwable exception) {
+					displayError("Couldn't retrieve JSON");
+				}
+			});
+		} catch(RequestException e) {
+			displayError("Couldn't retrieve JSON");
+		}
 	}
 
-	private void updateTable(StockPrice[] prices) {
-		for(int i = 0; i < prices.length; i++) {
-			updateTable(prices[i]);
+	protected void displayError(String string) {
+		errorMsgLabel.setText("Error: " + string);
+		errorMsgLabel.setVisible(true);
+	}
+
+	private void updateTable(JsArray<StockData> jsArray) {
+		for(int i = 0; i < jsArray.length(); i++) {
+			updateTable(jsArray.get(i));
 		}
 		
 		DateTimeFormat dateFormat = DateTimeFormat.getFormat(
 				DateTimeFormat.PredefinedFormat.DATE_TIME_MEDIUM);
 		lastUpdatedLabel.setText("Last update : " 
 				+ dateFormat.format(new Date()));
+		errorMsgLabel.setVisible(false);
 	}
 
-	private void updateTable(StockPrice stockPrice) {
+	private void updateTable(StockData stockPrice) {
 		if(!stocks.contains(stockPrice.getSymbol())) {
 			return;
 		}
@@ -214,11 +265,11 @@ public class StockWatcherTutorial implements EntryPoint {
 		changeWidget.setText(changeText + "(" + changeTextPrecent  + "%)");
 		
 		String changeStyleName = "noChange";
-		if(stockPrice.getChangePrecent() < -0.1f) {
+		if(stockPrice.getChangePercent() < -0.1f) {
 			changeStyleName = "negativeChange";
 		}
 		
-		else if(stockPrice.getChangePrecent() > 0.1f) {
+		else if(stockPrice.getChangePercent() > 0.1f) {
 			changeStyleName = "positiveChange";
 		}
 		

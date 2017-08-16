@@ -18,6 +18,17 @@ img {
   font-style: italic;
 }
 
+.watchListFooter {
+  background-color: #2062B8;
+  color: white;
+  font-style: italic;
+}
+
+.watchListFooterColumn {
+	text-align: center;
+	text-width: 8em;
+}
+
 /* stock list flex table */
 .watchList {
   border: 1px solid silver;

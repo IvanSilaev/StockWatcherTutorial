@@ -4,7 +4,8 @@ public enum TableNames {
 	SYMBOL("Symbol"),
 	PRICE("Price"),
 	CHANGE("Change"),
-	REMOVE("Remove");
+	REMOVE("Remove"),
+	TOTAL("Total");
 	
 	private final String text;
 	

@@ -21,12 +21,14 @@ import com.google.gwt.user.client.ui.Label;
 import com.google.gwt.user.client.ui.RootPanel;
 import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.VerticalPanel;
+import com.ibm.icu.util.CharsTrie.Iterator;
 import com.suchbaka.gwt.tutorial.shared.TableNames;
 import com.google.gwt.user.client.Timer;
 
 /**
  * Entry point classes define <code>onModuleLoad()</code>.
  */
+
 public class StockWatcherTutorial implements EntryPoint {
 	
 	private static final int REFRESH_INTERVAL = 5000;
@@ -119,6 +121,8 @@ public class StockWatcherTutorial implements EntryPoint {
 	private void addStock() {
 		final String symbol = newSymbolTextBox.getText().toUpperCase().trim();
 		
+		removeTableFooter();
+		
 		newSymbolTextBox.setFocus(true);
 		
 		if(!symbol.matches("^[0-9A-Z\\.]{1,10}$")) {
@@ -163,7 +167,13 @@ public class StockWatcherTutorial implements EntryPoint {
 
 	private void removeStock(String symbol) {
 		int removedIndex = stocks.indexOf(symbol);
-		stocks.remove(removedIndex);
+		stocks.remove(removedIndex);				
+
+		if(stocks.size() == 0) {
+			for(int i = 1; i < 3; i++) {
+				stocksFlexTable.setText(2, i, "");
+			}
+		}
 		
 		stocksFlexTable.removeRow(removedIndex + 1);
 	}
@@ -198,9 +208,12 @@ public class StockWatcherTutorial implements EntryPoint {
 	}
 
 	private void updateTable(StockPrice[] prices) {
+		
 		for(int i = 0; i < prices.length; i++) {
 			updateTable(prices[i]);
 		}
+		
+		updateTableFooter(prices);
 		
 		DateTimeFormat dateFormat = DateTimeFormat.getFormat(
 				DateTimeFormat.PredefinedFormat.DATE_TIME_MEDIUM);
@@ -238,5 +251,38 @@ public class StockWatcherTutorial implements EntryPoint {
 		}
 		
 		changeWidget.setStyleName(changeStyleName);
+	}
+	
+	private void updateTableFooter(StockPrice[] prices) {	
+		int totalRows = prices.length + 1;
+		
+		double totalPrices = 0;
+		double totalPrecenteChange = 0;
+		
+		
+		for(int i = 0; i < prices.length; i++) {
+			totalPrices += prices[i].getPrice();
+			totalPrecenteChange += prices[i].getChange();
+		}
+		
+		NumberFormat changeFormat = NumberFormat.getFormat("+#,##0.00;-#,##0.00");
+		
+		String totalPricesText = changeFormat.format(totalPrices);
+		String totalPrecenteChangeText = changeFormat.format(totalPrecenteChange);
+		
+		stocksFlexTable.setText(totalRows, 0, TableNames.TOTAL.toString());
+		stocksFlexTable.setText(totalRows, 1, totalPricesText);
+		stocksFlexTable.setText(totalRows, 2, totalPrecenteChangeText);
+		stocksFlexTable.setText(totalRows, 3, TableNames.TOTAL.toString());
+		stocksFlexTable.getCellFormatter().addStyleName(totalRows, 1, "watchListFooterColumn");
+		stocksFlexTable.getCellFormatter().addStyleName(totalRows, 2, "watchListFooterColumn");
+		stocksFlexTable.getCellFormatter().addStyleName(totalRows, 3, "watchListFooterColumn");
+		stocksFlexTable.getRowFormatter().addStyleName(totalRows, "watchListFooter");
+	}
+	
+	private void removeTableFooter() {
+		if(stocksFlexTable.getRowCount() != 1) {
+			stocksFlexTable.removeRow(stocksFlexTable.getRowCount() - 1);
+		}
 	}
 }

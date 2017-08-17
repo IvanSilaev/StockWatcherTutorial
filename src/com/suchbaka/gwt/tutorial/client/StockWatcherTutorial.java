@@ -235,7 +235,7 @@ public class StockWatcherTutorial implements EntryPoint {
 		NumberFormat changeFormat = NumberFormat.getFormat("+#,##0.00;-#,##0.00");
 		
 		String changeText = changeFormat.format(stockPrice.getChange());
-		String changeTextPrecent = changeFormat.format(stockPrice.getChange());
+		String changeTextPrecent = changeFormat.format(stockPrice.getChangePrecent());
 		
 		stocksFlexTable.setText(row, 1, priceText);
 		Label changeWidget = (Label) stocksFlexTable.getWidget(row, 2);
@@ -257,22 +257,25 @@ public class StockWatcherTutorial implements EntryPoint {
 		int totalRows = prices.length + 1;
 		
 		double totalPrices = 0;
+		double totalPrecente = 0;
 		double totalPrecenteChange = 0;
 		
 		
 		for(int i = 0; i < prices.length; i++) {
 			totalPrices += prices[i].getPrice();
-			totalPrecenteChange += prices[i].getChange();
+			totalPrecente += prices[i].getChange();
+			totalPrecenteChange += prices[i].getChangePrecent();
 		}
 		
 		NumberFormat changeFormat = NumberFormat.getFormat("+#,##0.00;-#,##0.00");
 		
 		String totalPricesText = changeFormat.format(totalPrices);
+		String totalPrecenteText = changeFormat.format(totalPrecente);
 		String totalPrecenteChangeText = changeFormat.format(totalPrecenteChange);
 		
 		stocksFlexTable.setText(totalRows, 0, TableNames.TOTAL.toString());
 		stocksFlexTable.setText(totalRows, 1, totalPricesText);
-		stocksFlexTable.setText(totalRows, 2, totalPrecenteChangeText);
+		stocksFlexTable.setText(totalRows, 2, totalPrecenteText + "(" + totalPrecenteChangeText + ")");
 		stocksFlexTable.setText(totalRows, 3, TableNames.TOTAL.toString());
 		stocksFlexTable.getCellFormatter().addStyleName(totalRows, 1, "watchListFooterColumn");
 		stocksFlexTable.getCellFormatter().addStyleName(totalRows, 2, "watchListFooterColumn");
